@@ -386,22 +386,81 @@ that produced it:
 
 **Happy path**
 
+**Query:** `python app.py ask 'vintage graphic tee under $30' --trace`
+
+```text
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: dict with keys: description, size, max_price
+
+[2] mcp.search_listings
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+      →    10 match(es)
+
+[3] select_item
+      out: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+
+[4] suggest_outfit
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: Here are two complete outfit ideas combining the new graphic tee with your existing wardrobe...
+      →    10 wardrobe item(s)
+
+[5] create_fit_card
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: Obsessed with how perfectly worn-in this Graphic Tee — 2003 Tour Bootleg Style is!...
 ```
 
-```
+**Result:** The agent successfully found 10 matching listings, selected a graphic tee priced at $24 on Depop, generated two outfit suggestions using existing wardrobe items, and created a fit card.
 
 **Empty search**
 
+**Query:** `python app.py ask 'purple astronaut tuxedo under $1' --trace`
+
+```text
+[1] parse_query
+      in:  purple astronaut tuxedo under $1
+      out: dict with keys: description, size, max_price
+
+[2] mcp.search_listings
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    0 match(es)
+
+[3] branch
+      →    search returned []: stopping before suggest_outfit
 ```
 
-```
+**Result:** No listings matched the description and price limit. The agent returned a helpful message suggesting broader search terms or a higher price limit. It correctly stopped without calling `suggest_outfit` or `create_fit_card`.
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
 behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
 
+For Unit 4, I moved the `search_listings` tool from a direct Python function call to an MCP server.
 
+I registered `search_listings` in `mcp_server.py` using `@mcp.tool()` and defined its required and optional parameters with Python type hints.
+
+In `agent.py`, I replaced the direct call to `search_listings()` with `mcp_client.call_tool("search_listings", {...})`.
+
+The MCP client connects to the server using standard input/output (stdio), calls the registered tool, and converts the response back into the original Python data structure.
+
+I also updated the execution trace to identify the MCP call as `mcp.search_listings`.
+
+**Observed behavior:** The MCP integration worked successfully. The agent returned matching clothing listings and continued through item selection, outfit generation, and fit-card creation without errors. The search results retained the same list-of-dictionaries structure expected by the agent.
+
+The main architectural change was how the search tool was accessed. The tool's functionality and the rest of the agent workflow remained unchanged.
+
+### Failure handling observations
+
+I also tested three failure conditions:
+
+- **Empty wardrobe:** The agent generated two general outfit suggestions without relying on saved wardrobe items.
+- **No matching listings:** The agent returned an informative message and stopped before outfit generation.
+- **Model unavailable:** I simulated a `ModelUnavailable` exception. The agent preserved all 10 search results, returned a helpful error message, and skipped outfit and fit-card generation.
+
+These tests confirmed that the agent can handle the tested failure conditions without crashing.
 
 ---
 
