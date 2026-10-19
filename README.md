@@ -471,26 +471,57 @@ These tests confirmed that the agent can handle the tested failure conditions wi
 
      `python run_eval.py --label after` -->
 
+
 **What I changed:**
 
+I updated `create_fit_card()` in `tools.py` to validate
+the selected item's price after the AI generates a caption.
+
+If the expected price is missing, the function automatically
+appends it. If the correct price is already present,
+the caption remains unchanged.
+
 **Which failure it was meant to fix:**
+
+The original implementation relied entirely on the AI
+to include the correct item price.
+
+Although the baseline evaluation passed this criterion,
+the AI could potentially omit the price.
+
+The new validation provides a deterministic safeguard
+against missing prices.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before outfit generation | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected item remains consistent | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card includes exact item price | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect budget | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
 **Did it help, and how do I know:**
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
 
+The after-evaluation completed 30 trials across six scenarios
+without crashes.
 
+All five acceptance criteria met their targets.
+
+The price-accuracy criterion remained at 5/5, matching
+the baseline. Therefore, the evaluation did not show a
+numerical score improvement.
+
+However, two targeted tests confirmed that the new
+validation adds the correct price when missing and
+does not duplicate an existing correct price.
+
+After-evaluation report:
+`results/run_2026-10-19_1320_after.md`
 
 ---
 
@@ -500,6 +531,23 @@ These tests confirmed that the agent can handle the tested failure conditions wi
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
+The five original acceptance criteria met their targets
+in the after-evaluation.
+
+However, the price-validation improvement has one
+remaining limitation.
+
+If the AI generates an incorrect price, the validation
+adds the correct price but does not remove the incorrect
+one. This could result in a fit card displaying two
+different prices.
+
+A future improvement would detect and replace incorrect
+price references rather than simply appending the
+expected price.
+
+The current implementation was kept intentionally small
+to focus on one targeted improvement for Unit 4.
 
 
 <!-- ═════════════════════════════════════════════════════════════════════

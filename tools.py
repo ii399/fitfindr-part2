@@ -215,6 +215,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         """
 
         return generate(prompt)
+       
 
     # Step 3: Format the user's wardrobe items
     wardrobe_lines = []
@@ -329,7 +330,20 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     """
 
     # Step 3: Generate and return the caption
-    return generate(prompt)
+    # return generate(prompt)
+
+    # Step 3: Generate the caption
+    caption = generate(prompt)
+
+    # Step 4: Validate the selected item's price
+    expected_price = f"${float(new_item['price']):.2f}"
+
+    if expected_price not in caption:
+        caption = f"{caption.rstrip()} Price: {expected_price}."
+
+    # Step 5: Return the validated caption
+    return caption
+
 
 # ── Tool 4: compare_prices ───────────────────────────────────────────────────
 def compare_prices(listings: list[dict]) -> dict:
