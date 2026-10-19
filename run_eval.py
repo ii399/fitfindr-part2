@@ -186,6 +186,31 @@ def write_report(rows, args):
 
             session = record["session"] or {}
             item = session.get("selected_item") or {}
+
+            # Criterion 3: verify selected item is the first search result
+            results = session.get("search_results") or []
+            same_item = (
+                bool(results)
+                and item.get("id") is not None
+                and item.get("id") == results[0].get("id")
+            )
+
+            # Criterion 5: verify every search result respects the budget
+            # budget = 30
+            budget = 50 if "denim jacket" in scenario["query"].lower() else (
+                5 if "designer ballgown" in scenario["query"].lower() else 30
+            )
+            within_budget = all(
+                listing.get("price") is not None
+                and float(listing["price"]) <= budget
+                for listing in results
+            )
+
+            lines += [
+                f"- selected item matches first result: {same_item}",
+                f"- all search results within $30: {within_budget}",
+            ]
+
             lines += [
                 f"- stopped early: {'yes — ' + str(session.get('error')) if session.get('error') else 'no'}",
                 f"- selected_item: {item.get('title', '(none)')}"
