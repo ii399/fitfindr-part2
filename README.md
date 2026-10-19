@@ -323,21 +323,63 @@ The agent successfully parsed the query, found eight matching listings, selected
      `python run_eval.py --label before` runs everything and writes the table
      into results/. Paste it here and fill in the verdicts. -->
 
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before outfit generation | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| Empty wardrobe (diagnostic) | N/A | PASS | PASS | PASS | PASS | PASS | Diagnostic |
+| 3. Selected item remains consistent | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5)* |
+| 4. Fit card includes exact item price | 4/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect budget | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5)** |
+
+* Criterion 3: The trace shows the same selected item being passed into suggest_outfit in all five trials. The report does not expose the item ID directly.
+
+** Criterion 5: The selected item was $24.00 against a $30 budget in all five trials. The report does not list every returned item's price, so full budget
+compliance requires the separate verification check.
 
 **Real output from one try**, pasted as text, naming the file and function
-that produced it:
+that produced it: 
+
+Scenario: Matching query completes  
+Query: `vintage graphic tee under $30`  
+Trial: 1
+
+Selected item:
+Graphic Tee — 2003 Tour Bootleg Style
+Price: $24.00
+Marketplace: depop
+
+Search results: 10
+Stopped early: No
+
+**Fit card output:**
+
+> Obsessed with this perfectly faded Graphic Tee — 2003 Tour Bootleg Style for building the ultimate 90s grunge streetwear fit! Grab it on depop now for just $24.00 before it's gone.
+
+**Actual tool trace:**
+
+```text
+[1] parse_query
+    in: vintage graphic tee under $30
+    out: dict with keys: description, size, max_price
+
+[2] mcp.search_listings
+    in: dict with keys: description, size, max_price
+    out: 10 items
+    → 10 match(es)
+
+[3] select_item
+    out: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+
+[4] suggest_outfit
+    in: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+    → 10 wardrobe item(s)
+
+[5] create_fit_card
+    in: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
 
 ```
-
-```
-
 ---
 
 ## Verdicts and Diagnoses
@@ -358,16 +400,40 @@ that produced it:
      Look for a pattern. Three misses on the same tool is one problem, not
      three. -->
 
-| # | Criterion | Target | Verdict | How I decided |
+
+| Criterion | Target | Before Result | Verdict | Diagnosis |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1. Matching query completes all three tools | 4/5 | 5/5 | MET | All five trials completed the expected tool sequence and generated a fit card. |
+| 2. Impossible query stops before outfit generation | 5/5 | 5/5 | MET | All five trials stopped after an empty search and returned helpful guidance. |
+| 3. Selected item remains consistent | 5/5 | 5/5 (trace-based) | MET* | The selected item matched the item passed to suggest_outfit in all five traces; item IDs were not recorded. |
+| 4. Fit card includes exact item price | 4/5 | 5/5 | MET | All five fit cards included the selected item's $24.00 price. |
+| 5. Search results respect budget | 5/5 | 5/5 (verification) | MET** | The selected item was within budget in the baseline; full result-set compliance was checked separately in the verification run. |
+
+
 
 **Diagnoses**
 
+The baseline evaluation met all five acceptance criteria
+based on the available traces and verification checks.
+
+The matching query completed the expected sequence:
+parse_query → mcp.search_listings → select_item →
+suggest_outfit → create_fit_card.
+
+The impossible query correctly stopped after an empty
+search without generating an outfit.
+
+Although all five baseline fit cards contained the
+correct price, this behavior depended on AI-generated
+text. The targeted improvement adds a deterministic
+price check to reduce the risk of omitting the price.
+
+* Criterion 3 is supported by the trace showing the
+same item passed between tools, rather than an
+explicit item-ID comparison in the baseline report.
+
+** Criterion 5 uses the separate verification run
+for checking all returned listing prices.
 
 
 ---
